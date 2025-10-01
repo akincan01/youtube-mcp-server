@@ -5,6 +5,16 @@ dotenv.config();
 
 const EnvSchema = z.object({
   MCP_HTTP_PORT: z.coerce.number().int().positive().default(3000),
+  YOUTUBE_CREDENTIALS_PATH: z
+    .string()
+    .min(1)
+    .default("config/credentials.json")
+    .transform((value) => value.trim()),
+  YOUTUBE_TOKEN_PATH: z
+    .string()
+    .min(1)
+    .default("config/token.json")
+    .transform((value) => value.trim()),
 });
 
 const parsedEnv = EnvSchema.safeParse(process.env);
