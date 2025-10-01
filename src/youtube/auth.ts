@@ -27,11 +27,17 @@ const resolvePath = (value: string): string => {
 };
 
 const loadCredentials = async (): Promise<OAuthClientConfig> => {
-  const envOverride = process.env.YOUTUBE_CREDENTIALS_JSON;
+  const envOverride = process.env.YOUTUBE_CREDENTIALS_JSON?.trim();
   const rawCredentials = envOverride
     ? envOverride
     : await readFile(resolvePath(config.YOUTUBE_CREDENTIALS_PATH), "utf-8");
-  const parsed: OAuthConfigFile = JSON.parse(rawCredentials);
+
+  let parsed: OAuthConfigFile;
+  try {
+    parsed = JSON.parse(rawCredentials) as OAuthConfigFile;
+  } catch (error) {
+    throw new Error("Failed to parse YouTube OAuth credentials JSON. Ensure the value is valid JSON.");
+  }
   const credentials = parsed.installed ?? parsed.web;
 
   if (!credentials) {
@@ -46,9 +52,13 @@ const loadCredentials = async (): Promise<OAuthClientConfig> => {
 };
 
 const loadToken = async (): Promise<Auth.Credentials> => {
-  const envOverride = process.env.YOUTUBE_TOKEN_JSON;
+  const envOverride = process.env.YOUTUBE_TOKEN_JSON?.trim();
   if (envOverride) {
-    return JSON.parse(envOverride) as Auth.Credentials;
+    try {
+      return JSON.parse(envOverride) as Auth.Credentials;
+    } catch (error) {
+      throw new Error("Failed to parse YouTube OAuth token JSON. Ensure the value is valid JSON.");
+    }
   }
 
   const tokenPath = resolvePath(config.YOUTUBE_TOKEN_PATH);
