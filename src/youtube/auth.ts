@@ -26,7 +26,37 @@ const resolvePath = (value: string): string => {
   return path.resolve(process.cwd(), value);
 };
 
+const buildCredentialsFromEnv = (): OAuthClientConfig | null => {
+  const clientId = process.env.YOUTUBE_CLIENT_ID?.trim();
+  const clientSecret = process.env.YOUTUBE_CLIENT_SECRET?.trim();
+  const redirectUrisRaw = process.env.YOUTUBE_REDIRECT_URIS?.trim();
+
+  if (!clientId || !clientSecret || !redirectUrisRaw) {
+    return null;
+  }
+
+  const redirectUris = redirectUrisRaw
+    .split(",")
+    .map((uri) => uri.trim())
+    .filter(Boolean);
+
+  if (redirectUris.length === 0) {
+    throw new Error("YOUTUBE_REDIRECT_URIS must contain at least one URI (comma-separated).");
+  }
+
+  return {
+    client_id: clientId,
+    client_secret: clientSecret,
+    redirect_uris: redirectUris,
+  } satisfies OAuthClientConfig;
+};
+
 const loadCredentials = async (): Promise<OAuthClientConfig> => {
+  const envCredentials = buildCredentialsFromEnv();
+  if (envCredentials) {
+    return envCredentials;
+  }
+
   const envOverride = process.env.YOUTUBE_CREDENTIALS_JSON?.trim();
   const rawCredentials = envOverride
     ? envOverride
@@ -52,6 +82,27 @@ const loadCredentials = async (): Promise<OAuthClientConfig> => {
 };
 
 const loadToken = async (): Promise<Auth.Credentials> => {
+  const envAccessToken = process.env.YOUTUBE_ACCESS_TOKEN?.trim();
+  const envRefreshToken = process.env.YOUTUBE_REFRESH_TOKEN?.trim();
+  const envTokenType = process.env.YOUTUBE_TOKEN_TYPE?.trim();
+  const envScope = process.env.YOUTUBE_SCOPE?.trim();
+  const envExpiry = process.env.YOUTUBE_TOKEN_EXPIRY?.trim();
+
+  if (envAccessToken && envRefreshToken) {
+    const expiryDate = envExpiry ? Number.parseInt(envExpiry, 10) : undefined;
+    if (envExpiry && Number.isNaN(expiryDate)) {
+      throw new Error("YOUTUBE_TOKEN_EXPIRY must be a numeric timestamp (milliseconds since epoch).");
+    }
+
+    return {
+      access_token: envAccessToken,
+      refresh_token: envRefreshToken,
+      scope: envScope,
+      token_type: envTokenType,
+      expiry_date: expiryDate,
+    } satisfies Auth.Credentials;
+  }
+
   const envOverride = process.env.YOUTUBE_TOKEN_JSON?.trim();
   if (envOverride) {
     try {

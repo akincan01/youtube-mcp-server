@@ -32,11 +32,11 @@ A Model Context Protocol (MCP) server that lets AI agents manage YouTube playlis
 3. Provide your OAuth credentials so the server can authenticate:
 
    ```
-   config/credentials.json  # Google Cloud OAuth client
+   config/credentials.json  # Google Cloud OAuth client (desktop app)
    config/token.json        # Generated refresh/access tokens
    ```
 
-   These files are ignored by git. If you prefer not to mount files in production, you can set the following environment variables instead: `YOUTUBE_CREDENTIALS_JSON` and `YOUTUBE_TOKEN_JSON` (see Deployment notes below).
+   These files are ignored by git. You can also copy their contents into environment variables (see below) and skip mounting files entirely.
 
 4. Run the interactive OAuth flow to populate `token.json`:
 
@@ -75,10 +75,15 @@ These prompts leverage YouTube data so your agent can keep the user in the loop 
 
 ## Environment Variables
 
+The server accepts credentials as files, JSON blobs, or individual fields. You only need **one** of these options.
+
 - `MCP_HTTP_PORT` – HTTP server port (default `3000`).
-- `YOUTUBE_CREDENTIALS_PATH` – Path to the OAuth client credentials JSON (`config/credentials.json`).
-- `YOUTUBE_TOKEN_PATH` – Path to the OAuth token JSON (`config/token.json`).
-- `YOUTUBE_CREDENTIALS_JSON` / `YOUTUBE_TOKEN_JSON` – Optional inline JSON overrides. If set, the server skips reading from disk (and will not attempt to rewrite the token).
+- `YOUTUBE_CREDENTIALS_PATH` / `YOUTUBE_TOKEN_PATH` – File paths for the client and token JSON (default: `config/...`).
+- `YOUTUBE_CREDENTIALS_JSON` / `YOUTUBE_TOKEN_JSON` – Inline JSON overrides for the full credential/token objects.
+- `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET`, `YOUTUBE_REDIRECT_URIS` – Individual credential fields (redirect URIs comma-separated). Takes precedence over the JSON/file options.
+- `YOUTUBE_ACCESS_TOKEN`, `YOUTUBE_REFRESH_TOKEN`, `YOUTUBE_TOKEN_TYPE`, `YOUTUBE_SCOPE`, `YOUTUBE_TOKEN_EXPIRY` – Individual token fields (expiry in ms since epoch). Takes precedence over the JSON/file options.
+
+The `.env.example` file includes placeholders for every option so you can `Import .env` in the Alpic dashboard.
 
 ## Inspector Quickstart
 
