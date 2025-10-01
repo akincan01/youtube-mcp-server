@@ -29,14 +29,14 @@ A Model Context Protocol (MCP) server that lets AI agents manage YouTube playlis
    cp .env.example .env
    ```
 
-3. Place your OAuth files (ignored by git) so the server can authenticate:
+3. Provide your OAuth credentials so the server can authenticate:
 
    ```
    config/credentials.json  # Google Cloud OAuth client
    config/token.json        # Generated refresh/access tokens
    ```
 
-   The defaults match `.env.example`; update `YOUTUBE_CREDENTIALS_PATH` or `YOUTUBE_TOKEN_PATH` in `.env` if you store them elsewhere.
+   These files are ignored by git. If you prefer not to mount files in production, you can set the following environment variables instead: `YOUTUBE_CREDENTIALS_JSON` and `YOUTUBE_TOKEN_JSON` (see Deployment notes below).
 
 4. Run the interactive OAuth flow to populate `token.json`:
 
@@ -78,6 +78,7 @@ These prompts leverage YouTube data so your agent can keep the user in the loop 
 - `MCP_HTTP_PORT` – HTTP server port (default `3000`).
 - `YOUTUBE_CREDENTIALS_PATH` – Path to the OAuth client credentials JSON (`config/credentials.json`).
 - `YOUTUBE_TOKEN_PATH` – Path to the OAuth token JSON (`config/token.json`).
+- `YOUTUBE_CREDENTIALS_JSON` / `YOUTUBE_TOKEN_JSON` – Optional inline JSON overrides. If set, the server skips reading from disk (and will not attempt to rewrite the token).
 
 ## Inspector Quickstart
 

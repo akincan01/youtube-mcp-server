@@ -27,7 +27,10 @@ const resolvePath = (value: string): string => {
 };
 
 const loadCredentials = async (): Promise<OAuthClientConfig> => {
-  const rawCredentials = await readFile(resolvePath(config.YOUTUBE_CREDENTIALS_PATH), "utf-8");
+  const envOverride = process.env.YOUTUBE_CREDENTIALS_JSON;
+  const rawCredentials = envOverride
+    ? envOverride
+    : await readFile(resolvePath(config.YOUTUBE_CREDENTIALS_PATH), "utf-8");
   const parsed: OAuthConfigFile = JSON.parse(rawCredentials);
   const credentials = parsed.installed ?? parsed.web;
 
@@ -43,12 +46,22 @@ const loadCredentials = async (): Promise<OAuthClientConfig> => {
 };
 
 const loadToken = async (): Promise<Auth.Credentials> => {
+  const envOverride = process.env.YOUTUBE_TOKEN_JSON;
+  if (envOverride) {
+    return JSON.parse(envOverride) as Auth.Credentials;
+  }
+
   const tokenPath = resolvePath(config.YOUTUBE_TOKEN_PATH);
   const rawToken = await readFile(tokenPath, "utf-8");
   return JSON.parse(rawToken) as Auth.Credentials;
 };
 
 const persistUpdatedToken = async (token: Auth.Credentials): Promise<void> => {
+  if (process.env.YOUTUBE_TOKEN_JSON) {
+    console.warn("Detected YOUTUBE_TOKEN_JSON environment variable; skipping token persistence to avoid diverging from deployment secret.");
+    return;
+  }
+
   const tokenPath = resolvePath(config.YOUTUBE_TOKEN_PATH);
 
   try {
