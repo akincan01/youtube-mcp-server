@@ -47,20 +47,16 @@
   width: 100%;
 }
 
-.suggestionButton {
-  padding: 12px 18px;
+.suggestionTag {
+  padding: 14px 20px;
   border-radius: 999px;
   border: 1px solid rgba(16, 16, 16, 0.08);
   background: #fff;
   box-shadow: 0 8px 20px rgba(16, 16, 16, 0.04);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
   font-size: 0.95rem;
-  text-align: left;
-}
-
-.suggestionButton:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 24px rgba(16, 16, 16, 0.08);
+  text-align: center;
+  color: #333;
+  cursor: default;
 }
 
 .chatWrapper {

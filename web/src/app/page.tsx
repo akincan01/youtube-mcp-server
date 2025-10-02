@@ -1,13 +1,12 @@
 "use client";
 
-import { useCallback } from "react";
 import { useChat } from "ai/react";
 import styles from "./page.module.css";
 
 const SUGGESTIONS = [
   "Curate an \"Intro to Python\" playlist with 5 tutorials",
   "Summarize my \"Intro to Python\" playlist",
-  "Search for Python tutorials videos",
+  "Search for Python tutorial videos",
 ];
 
 const HERO_MESSAGE = "Your YouTube AI Agent helping you to create the best playlists";
@@ -19,21 +18,8 @@ export default function Page(): JSX.Element {
     handleInputChange,
     handleSubmit,
     isLoading,
-    append,
-    setInput,
     error,
   } = useChat({ api: "/api/chat" });
-
-  const handleSuggestion = useCallback(
-    (prompt: string) => {
-      setInput("");
-      void append({
-        role: "user",
-        content: prompt,
-      });
-    },
-    [append, setInput],
-  );
 
   return (
     <main className={styles.main}>
@@ -58,15 +44,9 @@ export default function Page(): JSX.Element {
         </h2>
         <div className={styles.suggestions}>
           {SUGGESTIONS.map((suggestion) => (
-            <button
-              key={suggestion}
-              type="button"
-              className={styles.suggestionButton}
-              onClick={() => handleSuggestion(suggestion)}
-              disabled={isLoading}
-            >
+            <div key={suggestion} className={styles.suggestionTag} aria-hidden>
               {suggestion}
-            </button>
+            </div>
           ))}
         </div>
       </section>
