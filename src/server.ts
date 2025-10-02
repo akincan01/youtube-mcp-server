@@ -1,3 +1,8 @@
+/**
+ * MCP Server implementation with YouTube playlist management tools and prompts
+ * Defines 8 tools for video/playlist operations and 2 prompts for AI-assisted curation
+ */
+
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { type CallToolResult, type GetPromptResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
@@ -9,16 +14,27 @@ import {
   type VideoSummary,
 } from "./youtube/youtubeClient.js";
 
+/** YouTube video IDs are exactly 11 characters: alphanumeric, underscore, hyphen */
 const YOUTUBE_VIDEO_ID_REGEX = /^[A-Za-z0-9_-]{11}$/;
 
+/**
+ * Extracts YouTube video ID from various URL formats or returns raw ID
+ * Supports: youtube.com/watch?v=ID, youtu.be/ID, youtube.com/embed/ID, youtube.com/shorts/ID
+ * @param input - Video ID or YouTube URL
+ * @returns Normalized 11-character video ID
+ */
 const normalizeVideoId = (input: string): string => {
   const value = input.trim();
+
+  // Already a valid video ID
   if (YOUTUBE_VIDEO_ID_REGEX.test(value)) {
     return value;
   }
 
   try {
     const url = new URL(value);
+
+    // Extract from query parameter: youtube.com/watch?v=ID
     const queryId = url.searchParams.get("v");
     if (queryId && YOUTUBE_VIDEO_ID_REGEX.test(queryId)) {
       return queryId;
@@ -27,27 +43,32 @@ const normalizeVideoId = (input: string): string => {
     const segments = url.pathname.split("/").filter(Boolean);
 
     if (url.hostname.includes("youtu")) {
+      // youtu.be/ID
       if (url.hostname === "youtu.be" && segments[0] && YOUTUBE_VIDEO_ID_REGEX.test(segments[0])) {
         return segments[0];
       }
 
+      // youtube.com/embed/ID
       if (segments.length >= 2 && segments[0] === "embed" && YOUTUBE_VIDEO_ID_REGEX.test(segments[1])) {
         return segments[1];
       }
 
+      // youtube.com/shorts/ID
       if (segments.length >= 2 && segments[0] === "shorts" && YOUTUBE_VIDEO_ID_REGEX.test(segments[1])) {
         return segments[1];
       }
     }
   } catch (error) {
-    // Not a valid URL, fall through to pattern search.
+    // Not a valid URL, try regex patterns on raw string
   }
 
+  // Regex fallback for embedded query params
   const queryMatch = value.match(/[?&]v=([A-Za-z0-9_-]{11})/);
   if (queryMatch) {
     return queryMatch[1];
   }
 
+  // Regex fallback for embed URLs
   const embedMatch = value.match(/embed\/([A-Za-z0-9_-]{11})/);
   if (embedMatch) {
     return embedMatch[1];
@@ -56,6 +77,10 @@ const normalizeVideoId = (input: string): string => {
   return value;
 };
 
+/**
+ * Zod schema that validates and normalizes YouTube video IDs/URLs
+ * Transforms various URL formats into standard 11-character video IDs
+ */
 const videoIdSchema = z
   .string()
   .min(1)
@@ -72,6 +97,10 @@ const videoIdSchema = z
   })
   .describe("Normalized YouTube video identifier");
 
+/**
+ * Formats ISO date string to YYYY-MM-DD
+ * @returns Formatted date or "Unknown" if invalid
+ */
 const formatDate = (value?: string): string => {
   if (!value) {
     return "Unknown";
@@ -85,6 +114,10 @@ const formatDate = (value?: string): string => {
   return parsed.toISOString().split("T")[0];
 };
 
+/**
+ * Formats video summaries into human-readable numbered list with metadata
+ * Includes title, channel, publish date, URL, and optional thumbnail
+ */
 const formatVideos = (videos: VideoSummary[]): string => {
   if (videos.length === 0) {
     return "No videos found.";
@@ -100,6 +133,9 @@ const formatVideos = (videos: VideoSummary[]): string => {
     .join("\n");
 };
 
+/**
+ * Formats playlist summaries into numbered list with privacy status and item count
+ */
 const formatPlaylists = (playlists: PlaylistSummary[]): string => {
   if (playlists.length === 0) {
     return "No playlists found.";
@@ -113,6 +149,10 @@ const formatPlaylists = (playlists: PlaylistSummary[]): string => {
     .join("\n");
 };
 
+/**
+ * Formats playlist items (videos within a playlist) into numbered list
+ * Includes title, channel, publish date, and optional thumbnail
+ */
 const formatPlaylistItems = (items: PlaylistItemSummary[]): string => {
   if (items.length === 0) {
     return "No videos found in playlist.";
@@ -128,6 +168,10 @@ const formatPlaylistItems = (items: PlaylistItemSummary[]): string => {
     .join("\n");
 };
 
+/**
+ * Creates and configures the MCP server with YouTube tools and prompts
+ * @returns Configured McpServer instance ready for connection
+ */
 export const getServer = (): McpServer => {
   const server = new McpServer(
     {
@@ -141,6 +185,9 @@ export const getServer = (): McpServer => {
       },
     },
   );
+
+  // ==================== MCP TOOLS ====================
+  // Tools provide direct actions for video/playlist management
 
   server.tool(
     "searchVideos",
@@ -253,12 +300,7 @@ export const getServer = (): McpServer => {
         .array(videoIdSchema.describe("YouTube video ID or URL"))
         .min(1)
         .describe("List of video IDs or URLs to add"),
-      startPosition: z
-        .number()
-        .int()
-        .min(0)
-        .optional()
-        .describe("Optional starting insert position (0-based)"),
+      startPosition: z.number().int().min(0).optional().describe("Optional starting insert position (0-based)"),
     },
     async ({ playlistId, videoIds, startPosition }): Promise<CallToolResult> => {
       const client = await getYouTubeClient();
@@ -274,9 +316,7 @@ export const getServer = (): McpServer => {
             position: currentPosition,
           });
 
-          lines.push(
-            `✅ Added ${item.title || videoId} (videoId=${item.videoId}) at position ${item.position}.`,
-          );
+          lines.push(`✅ Added ${item.title || videoId} (videoId=${item.videoId}) at position ${item.position}.`);
 
           if (typeof currentPosition === "number") {
             currentPosition += 1;
@@ -286,7 +326,7 @@ export const getServer = (): McpServer => {
           lines.push(`❌ Failed to add ${videoId}: ${message}`);
         }
 
-        // Space operations slightly if Google throttles rapid inserts
+        // Rate limiting: 250ms delay between requests to avoid API throttling
         if (index < videoIds.length - 1) {
           await new Promise((resolve) => setTimeout(resolve, 250));
         }
@@ -384,6 +424,9 @@ export const getServer = (): McpServer => {
     },
   );
 
+  // ==================== MCP PROMPTS ====================
+  // Prompts provide AI-assisted guidance for complex tasks
+
   server.prompt(
     "curatePlaylist",
     "Generate instructions for curating a themed playlist.",
@@ -397,10 +440,9 @@ export const getServer = (): McpServer => {
     },
     async ({ theme, count }): Promise<GetPromptResult> => {
       const parsedCount = count ? Number.parseInt(count, 10) : Number.NaN;
-      const targetCount = Number.isNaN(parsedCount)
-        ? 5
-        : Math.min(Math.max(parsedCount, 1), 25);
+      const targetCount = Number.isNaN(parsedCount) ? 5 : Math.min(Math.max(parsedCount, 1), 25);
       const client = await getYouTubeClient();
+      // Fetch 3x candidate videos to give AI more options
       const candidates = await client.searchVideos(theme, Math.min(targetCount * 3, 25));
 
       const candidateText = formatVideos(candidates);
@@ -434,6 +476,7 @@ export const getServer = (): McpServer => {
     },
     async ({ playlistId }): Promise<GetPromptResult> => {
       const client = await getYouTubeClient();
+      // Fetch metadata and items in parallel for efficiency
       const [metadata, items] = await Promise.all([
         client.getPlaylistMetadata(playlistId),
         client.listPlaylistItems({ playlistId, maxResults: 25 }),
@@ -465,58 +508,6 @@ export const getServer = (): McpServer => {
       };
     },
   );
-
-  /*
-   * Temporarily disabled until related-video prompt stabilizes.
-   * server.prompt(
-   *   "suggestSimilar",
-   *   "Suggest related videos for a given YouTube video.",
-   *   {
-   *     videoId: videoIdSchema.describe("Seed video ID or URL"),
-   *     maxResults: z
-   *       .string()
-   *       .regex(/^[0-9]+$/, "Max results must be a positive integer")
-   *       .optional()
-   *       .describe("Number of related videos to propose"),
-   *   },
-   *   async ({ videoId, maxResults }): Promise<GetPromptResult> => {
-   *     const client = await getYouTubeClient();
-   *     const parsedMax = maxResults ? Number.parseInt(maxResults, 10) : Number.NaN;
-   *     const targetMax = Number.isNaN(parsedMax)
-   *       ? 5
-   *       : Math.min(Math.max(parsedMax, 1), 25);
-   *     const [seed, related] = await Promise.all([
-   *       client.getVideoDetails(videoId),
-   *       client.listRelatedVideos(videoId, targetMax * 2),
-   *     ]);
-   *
-   *     if (!seed) {
-   *       throw new Error(`Video ${videoId} not found.`);
-   *     }
-   *
-   *     const relatedText = formatVideos(related);
-   *
-   *     return {
-   *       messages: [
-   *         {
-   *           role: "assistant",
-   *           content: {
-   *             type: "text",
-   *             text: "You recommend YouTube videos with excellent taste and context awareness.",
-   *           },
-   *         },
-   *         {
-   *           role: "user",
-   *           content: {
-   *             type: "text",
-   *             text: `Suggest ${targetMax} YouTube videos similar to "${seed.title}" (${seed.url}).\nUse the related video candidates below for inspiration.\n${relatedText}`,
-   *           },
-   *         },
-   *       ],
-   *     };
-   *   },
-   * );
-   */
 
   return server;
 };

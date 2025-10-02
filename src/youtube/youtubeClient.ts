@@ -1,8 +1,14 @@
+/**
+ * YouTube Data API v3 client wrapper
+ * Provides simplified methods for video search, playlist management, and data retrieval
+ */
+
 import type { youtube_v3 } from "googleapis";
 import { google } from "googleapis";
 
 import { getOAuthClient } from "./auth.js";
 
+/** Simplified video metadata returned by search and detail methods */
 export interface VideoSummary {
   id: string;
   title: string;
@@ -13,6 +19,7 @@ export interface VideoSummary {
   thumbnailUrl?: string;
 }
 
+/** Simplified playlist metadata with video count and privacy status */
 export interface PlaylistSummary {
   id: string;
   title: string;
@@ -21,6 +28,7 @@ export interface PlaylistSummary {
   privacyStatus?: string;
 }
 
+/** Represents a single video within a playlist with position information */
 export interface PlaylistItemSummary {
   id: string;
   playlistId: string;
@@ -32,8 +40,12 @@ export interface PlaylistItemSummary {
   thumbnailUrl?: string;
 }
 
+/** YouTube API enforces a maximum of 50 results per request */
 const MAX_RESULTS_LIMIT = 50;
 
+/**
+ * Clamps maxResults to valid range (1-50) with default of 10
+ */
 const clampMaxResults = (maxResults?: number): number => {
   if (!maxResults || Number.isNaN(maxResults)) {
     return 10;
@@ -42,14 +54,29 @@ const clampMaxResults = (maxResults?: number): number => {
   return Math.min(Math.max(1, Math.floor(maxResults)), MAX_RESULTS_LIMIT);
 };
 
+/**
+ * Selects best available thumbnail URL from YouTube's size variants
+ * Priority: maxres > standard > high > medium > default
+ */
 const selectThumbnail = (thumbnails?: youtube_v3.Schema$ThumbnailDetails | null): string | undefined => {
   if (!thumbnails) {
     return undefined;
   }
 
-  return thumbnails.maxres?.url ?? thumbnails.standard?.url ?? thumbnails.high?.url ?? thumbnails.medium?.url ?? thumbnails.default?.url ?? undefined;
+  return (
+    thumbnails.maxres?.url ??
+    thumbnails.standard?.url ??
+    thumbnails.high?.url ??
+    thumbnails.medium?.url ??
+    thumbnails.default?.url ??
+    undefined
+  );
 };
 
+/**
+ * YouTube Data API v3 client with simplified methods for common operations
+ * Use getYouTubeClient() factory function to obtain a singleton instance
+ */
 export class YouTubeClient {
   private readonly service: youtube_v3.Youtube;
 
@@ -57,12 +84,22 @@ export class YouTubeClient {
     this.service = service;
   }
 
+  /**
+   * Creates a new YouTubeClient with authenticated API access
+   * Uses OAuth2 credentials from auth module
+   */
   static async create(): Promise<YouTubeClient> {
     const auth = await getOAuthClient();
     const service = google.youtube({ version: "v3", auth });
     return new YouTubeClient(service);
   }
 
+  /**
+   * Searches YouTube for videos matching a query
+   * @param query - Search terms
+   * @param maxResults - Number of results to return (1-50, default 10)
+   * @returns Array of video summaries ordered by relevance
+   */
   async searchVideos(query: string, maxResults?: number): Promise<VideoSummary[]> {
     const response = await this.service.search.list({
       q: query,
@@ -96,6 +133,13 @@ export class YouTubeClient {
     return results;
   }
 
+  /**
+   * Creates a new playlist in the authenticated user's account
+   * @param title - Playlist name
+   * @param description - Optional playlist description
+   * @param privacyStatus - Visibility setting (default: private)
+   * @returns Created playlist summary with ID
+   */
   async createPlaylist({
     title,
     description,
@@ -133,10 +177,21 @@ export class YouTubeClient {
     };
   }
 
+  /**
+   * Permanently deletes a playlist
+   * @param playlistId - ID of playlist to delete
+   */
   async deletePlaylist(playlistId: string): Promise<void> {
     await this.service.playlists.delete({ id: playlistId });
   }
 
+  /**
+   * Adds a video to a playlist at specified position
+   * @param playlistId - Target playlist ID
+   * @param videoId - YouTube video ID to add
+   * @param position - Optional 0-based position (defaults to end of playlist)
+   * @returns Playlist item summary with assigned position
+   */
   async addVideoToPlaylist({
     playlistId,
     videoId,
@@ -178,6 +233,12 @@ export class YouTubeClient {
     };
   }
 
+  /**
+   * Removes a video from a playlist by video ID
+   * @param playlistId - Target playlist ID
+   * @param videoId - YouTube video ID to remove
+   * @returns Removed playlist item summary, or null if not found
+   */
   async removeVideoFromPlaylist({
     playlistId,
     videoId,
@@ -196,6 +257,11 @@ export class YouTubeClient {
     return match;
   }
 
+  /**
+   * Lists all playlists owned by the authenticated user
+   * @param maxResults - Number of playlists to return (1-50, default 10)
+   * @returns Array of playlist summaries with video counts
+   */
   async listMyPlaylists(maxResults?: number): Promise<PlaylistSummary[]> {
     const response = await this.service.playlists.list({
       part: ["snippet", "status", "contentDetails"],
@@ -222,6 +288,12 @@ export class YouTubeClient {
     return playlists;
   }
 
+  /**
+   * Lists videos in a playlist with position information
+   * @param playlistId - Target playlist ID
+   * @param maxResults - Number of items to return (1-50, default 10)
+   * @returns Array of playlist items in order
+   */
   async listPlaylistItems({
     playlistId,
     maxResults,
@@ -259,6 +331,11 @@ export class YouTubeClient {
     return items;
   }
 
+  /**
+   * Retrieves playlist metadata without fetching all items
+   * @param playlistId - Target playlist ID
+   * @returns Playlist summary or null if not found
+   */
   async getPlaylistMetadata(playlistId: string): Promise<PlaylistSummary | null> {
     const response = await this.service.playlists.list({
       part: ["snippet", "status", "contentDetails"],
@@ -280,13 +357,19 @@ export class YouTubeClient {
     };
   }
 
+  /**
+   * Finds videos related to a given video
+   * @param videoId - Seed video ID to find related content
+   * @param maxResults - Number of related videos to return (1-50, default 10)
+   * @returns Array of related video summaries
+   */
   async listRelatedVideos(videoId: string, maxResults?: number): Promise<VideoSummary[]> {
     const response = await this.service.search.list({
       part: ["snippet"],
       type: ["video"],
       maxResults: clampMaxResults(maxResults),
       relatedToVideoId: videoId,
-      // The generated types currently miss the relatedToVideoId field guard, so we cast here.
+      // Type assertion needed - googleapis types don't include relatedToVideoId
     } as unknown as youtube_v3.Params$Resource$Search$List);
 
     const items = response.data.items ?? [];
@@ -313,6 +396,11 @@ export class YouTubeClient {
     return results;
   }
 
+  /**
+   * Retrieves detailed metadata for a specific video
+   * @param videoId - YouTube video ID
+   * @returns Video summary or null if not found
+   */
   async getVideoDetails(videoId: string): Promise<VideoSummary | null> {
     const response = await this.service.videos.list({
       part: ["snippet"],
@@ -336,12 +424,18 @@ export class YouTubeClient {
   }
 }
 
+/** Singleton cache for YouTube client instance */
 let clientPromise: Promise<YouTubeClient> | null = null;
 
+/**
+ * Returns a singleton YouTubeClient instance
+ * Creates the client on first call, then returns cached instance
+ * Resets cache on error to allow retry on next call
+ */
 export const getYouTubeClient = (): Promise<YouTubeClient> => {
   if (!clientPromise) {
     clientPromise = YouTubeClient.create().catch((error) => {
-      clientPromise = null;
+      clientPromise = null; // Reset cache on error to allow retry
       throw error;
     });
   }
