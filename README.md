@@ -113,21 +113,29 @@ These prompts leverage YouTube data so your agent can keep the user in the loop 
 
 Try these example prompts in the web interface:
 
-```
-🎵 "Create a playlist called 'Intro to Python' with 5 beginner tutorials"
+#### Show All My Playlists
+![Show all my playlists](screenshots/ScreenShot1.png)
 
-📋 "Show me all my playlists"
+#### Curate a Playlist with a Theme
+![Curate a playlist](screenshots/Screenshot2.png)
 
-🔍 "Search for TypeScript tutorial videos"
+#### Remove a Video from a Playlist
+![Remove video from playlist](screenshots/Screenshot3.png)
 
-📝 "Summarize my 'Intro to Python' playlist"
+#### Show Items in a Playlist
+![Show playlist items](screenshots/Screenshot4.png)
 
-➕ "Add this video to my playlist: https://youtube.com/watch?v=dQw4w9WgXcQ"
+#### Add a Video to a Playlist
+![Add video to playlist](screenshots/ScreenShot5.png)
 
-🎨 "Curate a 'Lo-fi Study Music' playlist with 10 videos"
+#### Summarize a Playlist
+![Summarize playlist](screenshots/Screenshot6.png)
 
-🗑️ "Delete the playlist with ID PLxxxxxx"
-```
+#### Search for Videos
+![Search for videos](screenshots/Screenshot7.png)
+
+#### YouTube Account Sync Verification
+![YouTube account showing synced playlists](screenshots/Screenshot9.png)
 
 ### Via MCP Inspector
 
