@@ -184,7 +184,11 @@ export const getServer = (): McpServer => {
     },
     async ({ title, description, privacyStatus }): Promise<CallToolResult> => {
       const client = await getYouTubeClient();
-      const playlist = await client.createPlaylist({ title, description, privacyStatus });
+      const playlist = await client.createPlaylist({
+        title,
+        description,
+        privacyStatus: privacyStatus ?? "private",
+      });
 
       return {
         content: [
@@ -235,6 +239,65 @@ export const getServer = (): McpServer => {
           {
             type: "text",
             text: `Added video ${item.videoId} to playlist ${item.playlistId} at position ${item.position}. (Item ID: ${item.id})`,
+          },
+        ],
+      };
+    },
+  );
+
+  server.tool(
+    "addVideosToPlaylist",
+    "Add multiple videos to a playlist in sequence.",
+    {
+      playlistId: z.string().min(1).describe("Target playlist ID"),
+      videoIds: z
+        .array(videoIdSchema.describe("YouTube video ID or URL"))
+        .min(1)
+        .describe("List of video IDs or URLs to add"),
+      startPosition: z
+        .number()
+        .int()
+        .min(0)
+        .optional()
+        .describe("Optional starting insert position (0-based)"),
+    },
+    async ({ playlistId, videoIds, startPosition }): Promise<CallToolResult> => {
+      const client = await getYouTubeClient();
+      const lines: string[] = [];
+
+      let currentPosition = startPosition;
+
+      for (const [index, videoId] of videoIds.entries()) {
+        try {
+          const item = await client.addVideoToPlaylist({
+            playlistId,
+            videoId,
+            position: currentPosition,
+          });
+
+          lines.push(
+            `✅ Added ${item.title || videoId} (videoId=${item.videoId}) at position ${item.position}.`,
+          );
+
+          if (typeof currentPosition === "number") {
+            currentPosition += 1;
+          }
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          lines.push(`❌ Failed to add ${videoId}: ${message}`);
+        }
+
+        // Space operations slightly if Google throttles rapid inserts
+        if (index < videoIds.length - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 250));
+        }
+      }
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: lines.join("\n"),
           },
         ],
       };

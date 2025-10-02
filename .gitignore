@@ -182,3 +182,7 @@ duckdata/
 config/credentials.json
 config/token.json
 config/
+web/
+.next/
+web/.next/
+web/node_modules/

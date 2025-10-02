@@ -53,6 +53,18 @@ A Model Context Protocol (MCP) server that lets AI agents manage YouTube playlis
 - **Start compiled server:** `npm run start`
 - **MCP Inspector:** `npm run inspector` (expects the dev server running at `http://localhost:3000/mcp`)
 
+### Web Chat (Next.js)
+
+The `web/` directory hosts a Next.js frontend that connects to this MCP server via the Vercel AI SDK.
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+Configuration lives in `web/.env`. At minimum set `OPENAI_API_KEY` and `MCP_SERVER_URL` (the local server is `http://localhost:3000/mcp`).
+
 ## Available MCP Tools
 
 - `searchVideos(query, maxResults?)` – Find videos matching a query.

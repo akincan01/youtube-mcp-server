@@ -65,7 +65,7 @@ const loadCredentials = async (): Promise<OAuthClientConfig> => {
   let parsed: OAuthConfigFile;
   try {
     parsed = JSON.parse(rawCredentials) as OAuthConfigFile;
-  } catch (error) {
+  } catch (_error) {
     throw new Error("Failed to parse YouTube OAuth credentials JSON. Ensure the value is valid JSON.");
   }
   const credentials = parsed.installed ?? parsed.web;
@@ -107,7 +107,7 @@ const loadToken = async (): Promise<Auth.Credentials> => {
   if (envOverride) {
     try {
       return JSON.parse(envOverride) as Auth.Credentials;
-    } catch (error) {
+    } catch (_error) {
       throw new Error("Failed to parse YouTube OAuth token JSON. Ensure the value is valid JSON.");
     }
   }
@@ -119,7 +119,9 @@ const loadToken = async (): Promise<Auth.Credentials> => {
 
 const persistUpdatedToken = async (token: Auth.Credentials): Promise<void> => {
   if (process.env.YOUTUBE_TOKEN_JSON) {
-    console.warn("Detected YOUTUBE_TOKEN_JSON environment variable; skipping token persistence to avoid diverging from deployment secret.");
+    console.warn(
+      "Detected YOUTUBE_TOKEN_JSON environment variable; skipping token persistence to avoid diverging from deployment secret.",
+    );
     return;
   }
 
@@ -140,11 +142,7 @@ const createOAuthClient = async (): Promise<Auth.OAuth2Client> => {
   const credentials = await loadCredentials();
   const token = await loadToken();
 
-  const client = new google.auth.OAuth2(
-    credentials.client_id,
-    credentials.client_secret,
-    credentials.redirect_uris[0],
-  );
+  const client = new google.auth.OAuth2(credentials.client_id, credentials.client_secret, credentials.redirect_uris[0]);
 
   client.setCredentials(token);
 
