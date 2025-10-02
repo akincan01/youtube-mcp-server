@@ -94,9 +94,8 @@ const formatVideos = (videos: VideoSummary[]): string => {
     .map((video, index) => {
       const published = formatDate(video.publishedAt);
       const channel = video.channelTitle ?? "Unknown creator";
-      const idLine = `\n   videoId: ${video.id}`;
-      const thumbnailLine = video.thumbnailUrl ? `\n   Thumbnail: ${video.thumbnailUrl}` : "";
-      return `${index + 1}. ${video.title} — ${channel} (${published})${idLine}\n   ${video.url}${thumbnailLine}`;
+      const thumbnailLine = video.thumbnailUrl ? `\n   ![thumbnail](${video.thumbnailUrl})` : "";
+      return `${index + 1}. ${video.title} — ${channel} (${published})\n   ${video.url}${thumbnailLine}`;
     })
     .join("\n");
 };
@@ -123,8 +122,8 @@ const formatPlaylistItems = (items: PlaylistItemSummary[]): string => {
     .map((item, index) => {
       const published = formatDate(item.publishedAt);
       const channel = item.channelTitle ?? "Unknown creator";
-      const thumbnailLine = item.thumbnailUrl ? `\n   Thumbnail: ${item.thumbnailUrl}` : "";
-      return `${index + 1}. ${item.title} — ${channel} (${published}) [videoId=${item.videoId}]${thumbnailLine}`;
+      const thumbnailLine = item.thumbnailUrl ? `\n   ![thumbnail](${item.thumbnailUrl})` : "";
+      return `${index + 1}. ${item.title} — ${channel} (${published})${thumbnailLine}`;
     })
     .join("\n");
 };
