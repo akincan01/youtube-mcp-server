@@ -35,6 +35,7 @@ yarn-error.log*
 *.d.ts.map
 *.d.ts
 !*.d.ts.template
+!web/src/types/mcp.d.ts
 !web/next-env.d.ts
 *.tgz
 .eslintcache

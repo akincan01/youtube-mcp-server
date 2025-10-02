@@ -67,7 +67,7 @@ export default function Page(): JSX.Element {
                   message.role === "user" ? styles.userMessage : styles.assistantMessage
                 }`}
               >
-                {typeof message.content === "string" ? message.content : message.content.toString()}
+                {typeof message.content === "string" ? message.content : String(message.content)}
               </div>
             ))}
           {isLoading && (

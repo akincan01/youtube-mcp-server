@@ -2,8 +2,8 @@ import { NextRequest } from "next/server";
 import { streamText, tool } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 import { z } from "zod";
-import { Client } from "@modelcontextprotocol/sdk/client";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 
 const SYSTEM_PROMPT = `You are YouTube AI Agent, a helpful assistant that manages playlists using MCP tools.
 - Prefer real actions via the provided tools when the user needs data or playlist changes.
@@ -26,7 +26,8 @@ const ensureEnv = () => {
 
 const formatCallToolResult = (name: string, result: Awaited<ReturnType<Client["callTool"]>>): string => {
   if (result.isError) {
-    const message = result.content?.map((entry) => (entry.type === "text" ? entry.text : JSON.stringify(entry))).join("\n") ?? "Unknown error";
+    const content = result.content as any[];
+    const message = content?.map((entry: any) => (entry.type === "text" ? entry.text : JSON.stringify(entry))).join("\n") ?? "Unknown error";
     return `Tool ${name} returned an error: ${message}`;
   }
 
@@ -36,8 +37,8 @@ const formatCallToolResult = (name: string, result: Awaited<ReturnType<Client["c
       : JSON.stringify(result.structuredContent, null, 2);
   }
 
-  const content = result.content
-    ?.map((entry) => {
+  const content = (result.content as any[])
+    ?.map((entry: any) => {
       if (entry.type === "text") {
         return entry.text;
       }
@@ -82,7 +83,7 @@ export async function POST(req: NextRequest) {
     },
   );
 
-  const transport = new StreamableHTTPClientTransport(process.env.MCP_SERVER_URL!);
+  const transport = new StreamableHTTPClientTransport(new URL(process.env.MCP_SERVER_URL!));
 
   try {
     await client.connect(transport);
@@ -104,7 +105,7 @@ export async function POST(req: NextRequest) {
     try {
       const cleanArgs = Object.fromEntries(
         Object.entries(args).filter(([, value]) => value !== undefined && value !== ""),
-      );
+      ) as Record<string, string>;
       const result = await client.getPrompt({ name, arguments: cleanArgs });
       return formatPromptResult(name, result);
     } catch (error) {
@@ -201,11 +202,10 @@ export async function POST(req: NextRequest) {
   } as const;
 
     const response = await streamText({
-      model: openai(DEFAULT_MODEL),
+      model: openai(DEFAULT_MODEL) as any,
       messages,
       system: SYSTEM_PROMPT,
       temperature: 0.4,
-      maxOutputTokens: 600,
       tools,
       toolChoice: "auto",
       maxSteps: 4,
