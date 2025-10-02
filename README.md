@@ -117,6 +117,9 @@ Try these example prompts in the web interface:
 ![Show all my playlists](screenshots/ScreenShot1.png)
 
 #### Curate a Playlist with a Theme
+
+Note: There is a small chance that YouTube can limit the number of playlist creation as it thinks you are a bot, it happened once when I was testing multiple times "create a playlist"
+
 ![Curate a playlist](screenshots/Screenshot2.png)
 
 #### Remove a Video from a Playlist
@@ -135,6 +138,7 @@ Try these example prompts in the web interface:
 ![Search for videos](screenshots/Screenshot7.png)
 
 #### YouTube Account Sync Verification
+
 ![YouTube account showing synced playlists](screenshots/Screenshot9.png)
 
 ### Via MCP Inspector
