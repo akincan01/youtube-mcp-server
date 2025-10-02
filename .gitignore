@@ -35,6 +35,7 @@ yarn-error.log*
 *.d.ts.map
 *.d.ts
 !*.d.ts.template
+!web/next-env.d.ts
 *.tgz
 .eslintcache
 .rollup.cache
@@ -182,7 +183,4 @@ duckdata/
 config/credentials.json
 config/token.json
 config/
-web/
-.next/
-web/.next/
-web/node_modules/
+
